@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:practice_demo/view/bottom_bar.dart';
 import 'package:practice_demo/view/home_screen.dart';
 import 'package:practice_demo/view/register_screen/registration_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -26,7 +27,7 @@ class _SplashScreenState extends State<SplashScreen> {
                   () => const RegistrationScreen(),
                 )
               : Get.off(
-                  () => const HomeScreen(),
+                  () => BottomBar(),
                 );
         },
       ),
@@ -36,10 +37,10 @@ class _SplashScreenState extends State<SplashScreen> {
 
   Future getData() async {
     SharedPreferences data = await SharedPreferences.getInstance();
-    var y = data.getString('email');
+    var info1 = data.getString('email');
     setState(
       () {
-        dataInfo = y;
+        dataInfo = info1;
       },
     );
   }

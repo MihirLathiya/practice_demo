@@ -73,7 +73,7 @@ class _LogInScreenState extends State<LogInScreen> {
                         await SharedPreferences.getInstance();
                     setData.setString('email', _email.text).then(
                           (value) => Get.off(
-                            () => const HomeScreen(),
+                            () => HomeScreen(),
                           ),
                         );
                   } else {

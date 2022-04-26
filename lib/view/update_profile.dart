@@ -1,6 +1,8 @@
 import 'dart:io';
 import 'dart:math';
 
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
@@ -10,23 +12,21 @@ import 'package:practice_demo/common_widgets/text_field.dart';
 import 'package:practice_demo/controller/gender_controller.dart';
 import 'package:practice_demo/controller/hobbies_controller.dart';
 import 'package:practice_demo/services/email_auth_services.dart';
-import 'package:practice_demo/view/bottom_bar.dart';
+import 'package:practice_demo/view/register_screen/gender_selection.dart';
+import 'package:practice_demo/view/register_screen/hobbies_selection.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../constant.dart';
-import '../home_screen.dart';
-import '../update_profile.dart';
-import 'gender_selection.dart';
-import 'hobbies_selection.dart';
+import 'home_screen.dart';
 
-class RegistrationScreen extends StatefulWidget {
-  const RegistrationScreen({Key? key}) : super(key: key);
+class UpadteProfileScreen extends StatefulWidget {
+  const UpadteProfileScreen({Key? key}) : super(key: key);
 
   @override
-  State<RegistrationScreen> createState() => _RegistrationScreenState();
+  State<UpadteProfileScreen> createState() => _UpadteProfileScreenState();
 }
 
-class _RegistrationScreenState extends State<RegistrationScreen> {
+class _UpadteProfileScreenState extends State<UpadteProfileScreen> {
   File? image;
   final picker = ImagePicker();
   dynamic selectCity = 'Surat';
@@ -34,11 +34,12 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
 
   List<String> city = ['Surat', 'Ahmedabad', 'Vadodara'];
 
-  final _firstName = TextEditingController();
-  final _lastName = TextEditingController();
-  final _email = TextEditingController();
-  final _mobileNum = TextEditingController();
-  final _password = TextEditingController();
+  TextEditingController? _firstName;
+  TextEditingController? _lastName;
+  TextEditingController? _email;
+  TextEditingController? _mobileNum;
+  TextEditingController? _password;
+
   final _formKey = GlobalKey<FormState>();
 
   HobbiesController hobbiesController = Get.put(HobbiesController());
@@ -58,30 +59,27 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
   }
 
   /// Adding Data to FireBase
-  Future addData() async {
+  Future updateUserData() async {
     String? imageUrl = await uploadFile(image!, "${Random().nextInt(1000)}");
 
     bool status = await FireBaseService.signUpService(
-      email: _email.text,
-      password: _password.text,
+      email: _email!.text,
+      password: _password!.text,
     );
     SharedPreferences userData = await SharedPreferences.getInstance();
 
     if (status == true) {
-      userData.setString('email', _email.text);
-      SharedPreferences info = await SharedPreferences.getInstance();
-      info.setString('email', _email.text);
-
+      userData.setString('email', _email!.text);
       firebaseFirestore
           .collection('User')
           .doc(firebaseAuth.currentUser!.uid)
-          .set(
+          .update(
         {
-          'firstName': _firstName.text,
-          'lastName': _lastName.text,
-          'mobileNumber': _mobileNum.text,
-          'passWord': _password.text,
-          'emailId': _email.text,
+          'firstName': _firstName!.text,
+          'lastName': _lastName!.text,
+          'mobileNumber': _mobileNum!.text,
+          'passWord': _password!.text,
+          'emailId': _email!.text,
           'image': imageUrl,
           'gender': genderController.genderSelect.value == 0 ? 'Men' : 'Female',
           'city': selectCity,
@@ -96,10 +94,37 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
         },
       ).whenComplete(
         () => Get.off(
-          () => BottomBar(),
+          () => HomeScreen(),
         ),
       );
     }
+  }
+
+  String? userImage;
+
+  void getUserData() async {
+    final user = await FirebaseFirestore.instance
+        .collection("User")
+        .doc(FirebaseAuth.instance.currentUser!.uid)
+        .get();
+    Map<String, dynamic>? getUserData = user.data();
+    _email?.text = getUserData!['emailId'];
+    _firstName?.text = getUserData!['firstName'];
+    _lastName?.text = getUserData!['lastName'];
+    _mobileNum?.text = getUserData!['mobileNumber'];
+    userImage = getUserData!['image'];
+    selectCity = getUserData['city'];
+    // setState(() {
+    //   _character = getUserData['gender'] == 'Female'
+    //       ? SingingCharacter.female
+    //       : SingingCharacter.male;
+    // });
+  }
+
+  @override
+  void initState() {
+    getUserData();
+    super.initState();
   }
 
   @override
@@ -157,7 +182,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                             ? ClipRRect(
                                 borderRadius: BorderRadius.circular(16),
                                 child: Image.network(
-                                  'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSS3O8ji7t15-RSjeOLUlfzte_0mL2En2xIMk8VlyTv_Y7k0kVpwcfc2ZXNbAH_zY-YQ_w&usqp=CAU',
+                                  userImage!,
                                   fit: BoxFit.cover,
                                 ),
                               )
@@ -243,7 +268,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                         child: TsField(
                           hide: false,
                           action: TextInputAction.next,
-                          controller: _firstName,
+                          controller: _firstName!,
                           hintText: 'First Name',
                           validator: (value) {
                             if (value.isEmpty) {
@@ -259,7 +284,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                         child: TsField(
                           hide: false,
                           action: TextInputAction.next,
-                          controller: _lastName,
+                          controller: _lastName!,
                           hintText: 'Last Name',
                           validator: (value) {
                             if (value.isEmpty) {
@@ -278,7 +303,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                   TsField(
                     hide: false,
                     action: TextInputAction.next,
-                    controller: _email,
+                    controller: _email!,
                     hintText: 'Email',
                     validator: (value) {
                       if (value.isEmpty) {
@@ -296,7 +321,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                     hide: false,
                     action: TextInputAction.next,
                     length: 10,
-                    controller: _mobileNum,
+                    controller: _mobileNum!,
                     hintText: 'Mobile Number',
                     validator: (value) {
                       if (value.isEmpty) {
@@ -369,7 +394,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                   TsField(
                     hide: showPassword,
                     action: TextInputAction.done,
-                    controller: _password,
+                    controller: _password!,
                     hintText: 'Password',
                     validator: (value) {
                       if (value.isEmpty) {
@@ -392,7 +417,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                   InkWell(
                     onTap: () {
                       if (_formKey.currentState!.validate()) {
-                        addData();
+                        //updateUserData();
                       }
                     },
                     child: Container(
